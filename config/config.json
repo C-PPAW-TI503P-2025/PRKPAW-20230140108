@@ -3,7 +3,7 @@
     "username": "root",
     "password": "12HJQmbxttw",
     "database": "praktikum_20230140108_db",
-    "host": "127.0.0.1",
+    "host": "localhost",
     "port": "3309",
     "dialect": "mysql"
   },
