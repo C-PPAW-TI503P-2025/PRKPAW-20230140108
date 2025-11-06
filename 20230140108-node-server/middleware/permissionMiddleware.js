@@ -1,14 +1,40 @@
 const { body, validationResult } = require('express-validator');
+const jwt = require('jsonwebtoken');
+const JWT_SECRET = 'INI_ADALAH_KUNCI_RAHASIA_ANDA_YANG_SANGAT_AMAN';
 
-exports.addUserData = (req, res, next) => {
-  console.log('Middleware: Menambahkan data user dummy...');
-  req.user = {
-    id: 123,
-    nama: 'User Karyawan',
-    role: 'admin'
-  };
-  next(); 
+// ============ JWT AUTHENTICATION MIDDLEWARE ============
+
+exports.authenticateToken = (req, res, next) => {
+  // Ambil token dari header Authorization
+  const authHeader = req.headers['authorization'];
+  const token = authHeader && authHeader.split(' ')[1]; // Format: "Bearer TOKEN"
+
+  if (!token) {
+    return res.status(401).json({ message: 'Token tidak ditemukan. Silakan login terlebih dahulu.' });
+  }
+
+  try {
+    // Verifikasi token
+    const decoded = jwt.verify(token, JWT_SECRET);
+    
+    // Simpan data user dari payload token ke req.user
+    req.user = {
+      id: decoded.id,
+      nama: decoded.nama,
+      role: decoded.role
+    };
+    
+    console.log('Middleware: User authenticated:', req.user.nama);
+    next();
+  } catch (error) {
+    if (error.name === 'TokenExpiredError') {
+      return res.status(401).json({ message: 'Token telah kadaluarsa. Silakan login kembali.' });
+    }
+    return res.status(403).json({ message: 'Token tidak valid.' });
+  }
 };
+
+// ============ AUTHORIZATION MIDDLEWARE ============
 
 exports.isAdmin = (req, res, next) => {
   if (req.user && req.user.role === 'admin') {
@@ -47,14 +73,6 @@ exports.validateUpdatePresensi = [
       }
       return true;
     }),
-
-  body('nama')
-    .optional()
-    .isString()
-    .withMessage('nama harus berupa string')
-    .trim()
-    .notEmpty()
-    .withMessage('nama tidak boleh kosong'),
 
   // Custom validation: checkOut harus setelah checkIn
   body('checkOut').custom((checkOut, { req }) => {
