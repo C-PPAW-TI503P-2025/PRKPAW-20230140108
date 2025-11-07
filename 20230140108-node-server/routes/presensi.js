@@ -2,23 +2,24 @@ const express = require('express');
 const router = express.Router();
 const presensiController = require('../controllers/presensiController');
 const { 
-    addUserData, 
+    authenticateToken, 
+    isAdmin,
     validateUpdatePresensi, 
     handleValidationErrors 
-  } = require('../middleware/permissionMiddleware');
-  
-  router.use(addUserData);
-  
-  router.post('/check-in', presensiController.CheckIn);
-  router.post('/check-out', presensiController.CheckOut);
-  
-  // Tambahkan validation middleware
-  router.put('/:id', 
-    validateUpdatePresensi, 
-    handleValidationErrors, 
-    presensiController.updatePresensi
-  );
-  
-  router.delete("/:id", presensiController.deletePresensi);
-  
-  module.exports = router;
+} = require('../middleware/permissionMiddleware');
+
+router.use(authenticateToken);  
+router.post('/check-in', presensiController.CheckIn);
+router.post('/check-out', presensiController.CheckOut);
+
+// Update hanya untuk admin
+router.put('/:id', 
+  isAdmin,
+  validateUpdatePresensi, 
+  handleValidationErrors, 
+  presensiController.updatePresensi
+);
+
+router.delete("/:id", presensiController.deletePresensi);
+
+module.exports = router;

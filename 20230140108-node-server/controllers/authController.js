@@ -1,4 +1,4 @@
-const { User } = require('../models');
+const { User } = require('../../models');
 const bcrypt = require('bcryptjs');
 const jwt = require('jsonwebtoken');	
 const JWT_SECRET = 'INI_ADALAH_KUNCI_RAHASIA_ANDA_YANG_SANGAT_AMAN';
