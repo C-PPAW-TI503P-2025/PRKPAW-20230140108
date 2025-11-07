@@ -16,19 +16,20 @@ module.exports = {
           model: 'Users',
           key: 'id'
         },
-        onUpdate : 'CASCADE',
-        onDelete : 'CASCADE'
+        onUpdate: 'CASCADE',
+        onDelete: 'CASCADE'
       },
-      nama: {
-        type: Sequelize.STRING,
-        allowNull: false
-      },
+      // ❌ DELETE these lines (22-25):
+      // nama: {
+      //   type: Sequelize.STRING,
+      //   allowNull: false
+      // },
       checkIn: {
         allowNull: false,
         type: Sequelize.DATE
       },
       checkOut: {
-        allowNull: true, // checkOut bisa kosong saat pertama kali check-in
+        allowNull: true,
         type: Sequelize.DATE
       },
       createdAt: {
