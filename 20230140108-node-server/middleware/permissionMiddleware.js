@@ -1,54 +1,42 @@
+const jwt = require("jsonwebtoken");
 const { body, validationResult } = require('express-validator');
-const jwt = require('jsonwebtoken');
-const JWT_SECRET = 'INI_ADALAH_KUNCI_RAHASIA_ANDA_YANG_SANGAT_AMAN';
 
-// ============ JWT AUTHENTICATION MIDDLEWARE ============
+// Requirement: Gunakan process.env.JWT_SECRET
+const JWT_SECRET = process.env.JWT_SECRET || 'INI_ADALAH_KUNCI_RAHASIA_ANDA_YANG_SANGAT_AMAN';
 
 exports.authenticateToken = (req, res, next) => {
-  // Ambil token dari header Authorization
-  const authHeader = req.headers['authorization'];
-  const token = authHeader && authHeader.split(' ')[1]; // Format: "Bearer TOKEN"
+  const authHeader = req.headers["authorization"];
+  const token = authHeader && authHeader.split(" ")[1];
 
-  if (!token) {
-    return res.status(401).json({ message: 'Token tidak ditemukan. Silakan login terlebih dahulu.' });
+  if (token == null) {
+    return res
+      .status(401)
+      .json({ message: "Akses ditolak. Token tidak disediakan." });
   }
 
-  try {
-    // Verifikasi token
-    const decoded = jwt.verify(token, JWT_SECRET);
-    
-    // Simpan data user dari payload token ke req.user
-    req.user = {
-      id: decoded.id,
-      nama: decoded.nama,
-      role: decoded.role
-    };
-    
-    console.log('Middleware: User authenticated:', req.user.nama);
-    next();
-  } catch (error) {
-    if (error.name === 'TokenExpiredError') {
-      return res.status(401).json({ message: 'Token telah kadaluarsa. Silakan login kembali.' });
+  jwt.verify(token, JWT_SECRET, (err, userPayload) => {
+    if (err) {
+      return res
+        .status(403)
+        .json({ message: "Token tidak valid atau kedaluwarsa." });
     }
-    return res.status(403).json({ message: 'Token tidak valid.' });
-  }
+    req.user = userPayload;
+    next();
+  });
 };
-
-// ============ AUTHORIZATION MIDDLEWARE ============
 
 exports.isAdmin = (req, res, next) => {
-  if (req.user && req.user.role === 'admin') {
-    console.log('Middleware: Izin admin diberikan.');
-    next(); 
+  if (req.user && req.user.role === "admin") {
+    next();
   } else {
-    console.log('Middleware: Gagal! Pengguna bukan admin.');
-    return res.status(403).json({ message: 'Akses ditolak: Hanya untuk admin'});
+    return res
+      .status(403)
+      .json({ message: "Akses ditolak. Hanya untuk admin." });
   }
 };
 
-// ============ VALIDATION MIDDLEWARE ============
-
-// Validation rules untuk update presensi
+// ... existing code ...
+// Helper functions needed by routes/presensi.js
 exports.validateUpdatePresensi = [
   body('checkIn')
     .optional()
@@ -74,7 +62,6 @@ exports.validateUpdatePresensi = [
       return true;
     }),
 
-  // Custom validation: checkOut harus setelah checkIn
   body('checkOut').custom((checkOut, { req }) => {
     if (checkOut && req.body.checkIn) {
       const checkInDate = new Date(req.body.checkIn);
@@ -88,7 +75,6 @@ exports.validateUpdatePresensi = [
   }),
 ];
 
-// Middleware untuk menangani validation errors
 exports.handleValidationErrors = (req, res, next) => {
   const errors = validationResult(req);
   

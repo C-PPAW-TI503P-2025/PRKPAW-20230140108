@@ -5,8 +5,8 @@ const timeZone = "Asia/Jakarta";
 
 exports.CheckIn = async (req, res) => {
   try {
-    // Ambil userId dari JWT token (req.user sudah diset oleh authenticateToken middleware)
     const { id: userId, nama: userName } = req.user;
+    const { latitude, longitude } = req.body; // <-- Ambil dari body
     const waktuSekarang = new Date();
 
     // Cek apakah user sudah check-in hari ini (belum checkout)
@@ -20,10 +20,12 @@ exports.CheckIn = async (req, res) => {
         .json({ message: "Anda sudah melakukan check-in hari ini." });
     }
 
-    // Buat record presensi baru (TANPA nama - akan diambil dari relasi User)
+    // Buat record presensi baru DENGAN LOKASI
     const newRecord = await Presensi.create({
       userId: userId,
       checkIn: waktuSekarang,
+      latitude: latitude || null,   // <-- Simpan lokasi
+      longitude: longitude || null, // <-- Simpan lokasi
     });
     
     // Include user data untuk response
@@ -46,7 +48,9 @@ exports.CheckIn = async (req, res) => {
         userId: recordWithUser.userId,
         user: recordWithUser.user,
         checkIn: format(recordWithUser.checkIn, "yyyy-MM-dd HH:mm:ssXXX", { timeZone }),
-        checkOut: null
+        checkOut: null,
+        latitude: recordWithUser.latitude,   // <-- Kirim di response
+        longitude: recordWithUser.longitude, // <-- Kirim di response
       },
     });
   } catch (error) {

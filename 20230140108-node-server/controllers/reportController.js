@@ -1,48 +1,44 @@
-const { Presensi } = require("../../models");
-const {Op} = require("sequelize");
+const { Presensi, User } = require("../../models");
+const { Op } = require("sequelize");
 
 exports.getDailyReport = async (req, res) => {
   try {
     const { nama, tanggalMulai, tanggalSelesai } = req.query;
-    let options = { where: {} };
 
-    if (nama) {
-      options.where.nama = {
-        [Op.like]: `%${nama}%`,
-      };
-    }
+    // Filter untuk tabel Presensi (tanggal)
+    let presensiWhere = {};
 
-    // Filter berdasarkan rentang tanggal
     if (tanggalMulai && tanggalSelesai) {
-      // Jika kedua tanggal ada, gunakan Op.between
-      const startDate = new Date(tanggalMulai);
-      startDate.setHours(0, 0, 0, 0); // Set ke awal hari
-      
-      const endDate = new Date(tanggalSelesai);
-      endDate.setHours(23, 59, 59, 999); // Set ke akhir hari
-      
-      options.where.checkIn = {
-        [Op.between]: [startDate, endDate]
-      };
+      const startDate = new Date(tanggalMulai); startDate.setHours(0, 0, 0, 0);
+      const endDate = new Date(tanggalSelesai); endDate.setHours(23, 59, 59, 999);
+      presensiWhere.checkIn = { [Op.between]: [startDate, endDate] };
     } else if (tanggalMulai) {
-      // Jika hanya tanggal mulai, filter >= tanggalMulai
-      const startDate = new Date(tanggalMulai);
-      startDate.setHours(0, 0, 0, 0);
-      
-      options.where.checkIn = {
-        [Op.gte]: startDate
-      };
+      const startDate = new Date(tanggalMulai); startDate.setHours(0, 0, 0, 0);
+      presensiWhere.checkIn = { [Op.gte]: startDate };
     } else if (tanggalSelesai) {
-      // Jika hanya tanggal selesai, filter <= tanggalSelesai
-      const endDate = new Date(tanggalSelesai);
-      endDate.setHours(23, 59, 59, 999);
-      
-      options.where.checkIn = {
-        [Op.lte]: endDate
+      const endDate = new Date(tanggalSelesai); endDate.setHours(23, 59, 59, 999);
+      presensiWhere.checkIn = { [Op.lte]: endDate };
+    }
+
+    // Filter untuk tabel User (nama)
+    let includeOptions = {
+      model: User,  // <-- INI YANG KURANG!
+      as: 'user',
+      attributes: ['id', 'nama', 'email']
+    };
+
+    // Jika ada filter nama, tambahkan where di include
+    if (nama) {
+      includeOptions.where = {
+        nama: { [Op.like]: `%${nama}%` }
       };
     }
 
-    const records = await Presensi.findAll(options);
+    const records = await Presensi.findAll({
+      where: presensiWhere,
+      include: [includeOptions],
+      order: [['checkIn', 'DESC']]
+    });
 
     res.json({
       reportDate: new Date().toLocaleDateString(),
@@ -55,8 +51,7 @@ exports.getDailyReport = async (req, res) => {
       data: records,
     });
   } catch (error) {
-    res
-      .status(500)
-      .json({ message: "Gagal mengambil laporan", error: error.message });
+    console.error("Error in getDailyReport:", error);
+    res.status(500).json({ message: "Gagal mengambil laporan", error: error.message });
   }
 };

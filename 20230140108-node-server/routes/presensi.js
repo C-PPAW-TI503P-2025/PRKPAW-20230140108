@@ -2,10 +2,10 @@ const express = require('express');
 const router = express.Router();
 const presensiController = require('../controllers/presensiController');
 const { 
-    authenticateToken, 
-    isAdmin,
-    validateUpdatePresensi, 
-    handleValidationErrors 
+  authenticateToken, 
+  isAdmin,
+  validateUpdatePresensi,  
+  handleValidationErrors   
 } = require('../middleware/permissionMiddleware');
 
 router.use(authenticateToken);  
@@ -14,7 +14,7 @@ router.post('/check-out', presensiController.CheckOut);
 
 // Update hanya untuk admin
 router.put('/:id', 
-  isAdmin,
+  isAdmin,    
   validateUpdatePresensi, 
   handleValidationErrors, 
   presensiController.updatePresensi

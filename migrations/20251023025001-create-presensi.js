@@ -19,11 +19,6 @@ module.exports = {
         onUpdate: 'CASCADE',
         onDelete: 'CASCADE'
       },
-      // ❌ DELETE these lines (22-25):
-      // nama: {
-      //   type: Sequelize.STRING,
-      //   allowNull: false
-      // },
       checkIn: {
         allowNull: false,
         type: Sequelize.DATE
