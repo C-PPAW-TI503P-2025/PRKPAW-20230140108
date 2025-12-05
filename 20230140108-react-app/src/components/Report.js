@@ -3,6 +3,7 @@ import axios from 'axios';
 import { useNavigate } from 'react-router-dom';
 
 const API_URL = "http://localhost:3001/api/reports/daily";
+const UPLOADS_URL = "http://localhost:3001/uploads"; // Base URL untuk foto
 
 function ReportPage() {
     const [reports, setReports] = useState([]);
@@ -14,6 +15,9 @@ function ReportPage() {
     const [startDate, setStartDate] = useState("");
     const [endDate, setEndDate] = useState("");
 
+    // State untuk Modal Foto
+    const [selectedImage, setSelectedImage] = useState(null);
+
     const fetchReports = useCallback(async () => {
         const token = localStorage.getItem("token");
         if (!token) {
@@ -22,7 +26,6 @@ function ReportPage() {
         }
 
         try {
-            // Setup Query Params
             const params = new URLSearchParams();
             if (searchTerm) params.append('nama', searchTerm);
             if (startDate) params.append('tanggalMulai', startDate);
@@ -45,7 +48,6 @@ function ReportPage() {
         }
     }, [navigate, searchTerm, startDate, endDate]);
 
-    // Load data awal saat komponen dimuat
     useEffect(() => {
         fetchReports();
     // eslint-disable-next-line react-hooks/exhaustive-deps
@@ -56,8 +58,18 @@ function ReportPage() {
         fetchReports();
     };
 
+    // Fungsi untuk membuka modal foto
+    const openImageModal = (photoUrl) => {
+        setSelectedImage(photoUrl);
+    };
+
+    // Fungsi untuk menutup modal
+    const closeImageModal = () => {
+        setSelectedImage(null);
+    };
+
     return (
-        <div className="max-w-6xl mx-auto p-8">
+        <div className="max-w-7xl mx-auto p-8">
             <h1 className="text-3xl font-bold text-gray-800 mb-6">Laporan Presensi (Admin)</h1>
 
             {/* Form Filter */}
@@ -106,7 +118,7 @@ function ReportPage() {
 
             {/* Tabel Data */}
             {!error && (
-                <div className="bg-white shadow overflow-hidden rounded-lg">
+                <div className="bg-white shadow overflow-hidden rounded-lg overflow-x-auto">
                     <table className="min-w-full divide-y divide-gray-200">
                         <thead className="bg-gray-50">
                             <tr>
@@ -114,6 +126,7 @@ function ReportPage() {
                                 <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Tanggal</th>
                                 <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Check In</th>
                                 <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Check Out</th>
+                                <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Bukti Foto</th>
                             </tr>
                         </thead>
                         <tbody className="bg-white divide-y divide-gray-200">
@@ -135,17 +148,63 @@ function ReportPage() {
                                                 : <span className="text-gray-400 italic">Belum</span>
                                             }
                                         </td>
+                                        {/* Kolom Bukti Foto */}
+                                        <td className="px-6 py-4 whitespace-nowrap text-sm">
+                                            {item.photo ? (
+                                                <img 
+                                                    src={`${UPLOADS_URL}/${item.photo}`} 
+                                                    alt="Bukti Presensi"
+                                                    className="w-16 h-16 object-cover rounded-lg cursor-pointer hover:opacity-80 transition border border-gray-200"
+                                                    onClick={() => openImageModal(`${UPLOADS_URL}/${item.photo}`)}
+                                                />
+                                            ) : (
+                                                <span className="text-gray-400 italic">Tidak ada foto</span>
+                                            )}
+                                        </td>
                                     </tr>
                                 ))
                             ) : (
                                 <tr>
-                                    <td colSpan="4" className="px-6 py-10 text-center text-gray-500">
+                                    <td colSpan="5" className="px-6 py-10 text-center text-gray-500">
                                         Tidak ada data presensi ditemukan.
                                     </td>
                                 </tr>
                             )}
                         </tbody>
                     </table>
+                </div>
+            )}
+
+            {/* MODAL POPUP untuk Foto Ukuran Penuh */}
+            {selectedImage && (
+                <div 
+                    className="fixed inset-0 bg-black bg-opacity-75 flex items-center justify-center z-50 p-4"
+                    onClick={closeImageModal}
+                >
+                    <div 
+                        className="relative max-w-4xl max-h-full"
+                        onClick={(e) => e.stopPropagation()} // Prevent closing when clicking image
+                    >
+                        {/* Tombol Close */}
+                        <button 
+                            onClick={closeImageModal}
+                            className="absolute -top-10 right-0 text-white text-xl font-bold hover:text-gray-300 bg-red-600 rounded-full w-8 h-8 flex items-center justify-center"
+                        >
+                            ✕
+                        </button>
+                        
+                      {/* Foto Ukuran Penuh */}
+                        <img 
+                            src={selectedImage} 
+                            alt="Bukti Presensi Full"
+                            className="max-w-full max-h-[80vh] object-contain rounded-lg shadow-2xl"
+                        />
+                        
+                        {/* Caption */}
+                        <p className="text-center text-white mt-4 text-sm">
+                            Klik di luar gambar atau tombol ✕ untuk menutup
+                        </p>
+                    </div>
                 </div>
             )}
         </div>

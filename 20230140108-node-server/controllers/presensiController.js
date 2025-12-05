@@ -2,58 +2,80 @@
 const { Presensi, User } = require("../../models");
 const { format } = require("date-fns-tz");
 const timeZone = "Asia/Jakarta";
+const multer = require('multer');
+const path = require('path');
+const fs = require('fs');
+
+const uploadsDir = path.join(__dirname, '..', 'uploads');
+if (!fs.existsSync(uploadsDir)) {
+  fs.mkdirSync(uploadsDir, { recursive: true });
+}
+
+const storage = multer.diskStorage({
+  destination: (req, file, cb) => {
+    cb(null, uploadsDir);
+  },
+  filename: (req, file, cb) => {
+    cb(null, `${req.user.id}-${Date.now()}${path.extname(file.originalname)}`);
+  }
+});
+
+const fileFilter = (req, file, cb) => {
+  if (file.mimetype.startsWith('image/')) {
+    cb(null, true);
+  } else {
+    cb(new Error('Hanya file gambar yang diperbolehkan!'), false);
+  }
+};
+
+exports.upload = multer({ storage: storage, fileFilter: fileFilter });
 
 exports.CheckIn = async (req, res) => {
   try {
     const { id: userId, nama: userName } = req.user;
-    const { latitude, longitude } = req.body; // <-- Ambil dari body
+    const { latitude, longitude } = req.body;
     const waktuSekarang = new Date();
 
-    // Cek apakah user sudah check-in hari ini (belum checkout)
+    // Ambil nama file foto (bukan full path)
+    const photo = req.file ? req.file.filename : null;
+
+    // Cek apakah user sudah check-in hari ini
     const existingRecord = await Presensi.findOne({
       where: { userId: userId, checkOut: null },
     });
 
     if (existingRecord) {
-      return res
-        .status(400)
-        .json({ message: "Anda sudah melakukan check-in hari ini." });
+      return res.status(400).json({ message: "Anda sudah melakukan check-in hari ini." });
     }
 
-    // Buat record presensi baru DENGAN LOKASI
+    // Buat record presensi baru
     const newRecord = await Presensi.create({
       userId: userId,
       checkIn: waktuSekarang,
-      latitude: latitude || null,   // <-- Simpan lokasi
-      longitude: longitude || null, // <-- Simpan lokasi
+      latitude: latitude || null,
+      longitude: longitude || null,
+      photo: photo  // <-- Simpan nama file, bukan path penuh
     });
-    
-    // Include user data untuk response
+
     const recordWithUser = await Presensi.findByPk(newRecord.id, {
-      include: [{
-        model: User,
-        as: 'user',
-        attributes: ['id', 'nama', 'email']
-      }]
+      include: [{ model: User, as: 'user', attributes: ['id', 'nama', 'email'] }]
     });
 
     res.status(201).json({
-      message: `Halo ${userName}, check-in Anda berhasil pada pukul ${format(
-        waktuSekarang,
-        "HH:mm:ss",
-        { timeZone }
-      )} WIB`,
+      message: `Halo ${userName}, check-in Anda berhasil pada pukul ${format(waktuSekarang, "HH:mm:ss", { timeZone })} WIB`,
       data: {
         id: recordWithUser.id,
         userId: recordWithUser.userId,
         user: recordWithUser.user,
         checkIn: format(recordWithUser.checkIn, "yyyy-MM-dd HH:mm:ssXXX", { timeZone }),
         checkOut: null,
-        latitude: recordWithUser.latitude,   // <-- Kirim di response
-        longitude: recordWithUser.longitude, // <-- Kirim di response
+        latitude: recordWithUser.latitude,
+        longitude: recordWithUser.longitude,
+        photo: recordWithUser.photo
       },
     });
   } catch (error) {
+    console.error("CheckIn Error:", error);
     res.status(500).json({ message: "Terjadi kesalahan pada server", error: error.message });
   }
 };

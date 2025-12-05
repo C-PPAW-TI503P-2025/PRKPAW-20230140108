@@ -3,6 +3,8 @@ const cors = require("cors");
 const app = express();
 const PORT = 3001;
 const morgan = require("morgan");
+const path = require('path'); 
+
 
 // Impor router
 const presensiRoutes = require("./routes/presensi");
@@ -21,6 +23,8 @@ app.use((req, res, next) => {
 app.get("/", (req, res) => {
   res.send("Home Page for API");
 });
+
+app.use('/uploads', express.static(path.join(__dirname, 'uploads')));
 const ruteBuku = require("./routes/books");
 app.use("/api/books", ruteBuku);
 app.use("/api/presensi", presensiRoutes);

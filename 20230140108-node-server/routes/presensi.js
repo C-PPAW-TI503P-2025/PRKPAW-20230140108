@@ -8,11 +8,14 @@ const {
   handleValidationErrors   
 } = require('../middleware/permissionMiddleware');
 
-router.use(authenticateToken);  
-router.post('/check-in', presensiController.CheckIn);
+// Terapkan auth ke semua routes
+router.use(authenticateToken);
+
+// Check-in dengan upload foto (JANGAN tambahkan authenticateToken lagi)
+router.post('/check-in', presensiController.upload.single('image'), presensiController.CheckIn);
+
 router.post('/check-out', presensiController.CheckOut);
 
-// Update hanya untuk admin
 router.put('/:id', 
   isAdmin,    
   validateUpdatePresensi, 
